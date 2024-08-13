@@ -31,6 +31,7 @@ import numpy as np
 import pandas as pd
 import torch
 import webdataset as wds
+import yaml
 
 # MegaPose
 import megapose.utils.tensor_collection as tc
@@ -96,6 +97,30 @@ class ObjectData:
         return d
 
     @staticmethod
+    def from_dict(d) -> "ObjectData":
+        assert isinstance(d, dict)
+        label = d["label"]
+        assert isinstance(label, str)
+        data = ObjectData(label=label)
+        for k in ("TWO", "TWO_init"):
+            if k in d:
+                item = d[k]
+                assert isinstance(item, list)
+                quat_list, trans_list = item
+                assert isinstance(quat_list, list)
+                assert isinstance(trans_list, list)
+                quat = tuple(quat_list)
+                trans = tuple(trans_list)
+                setattr(data, k, Transform(quat, trans))
+        for k in ("unique_id", "visib_fract"):
+            if k in d:
+                setattr(data, k, d[k])
+        for k in ("bbox_amodal", "bbox_modal"):
+            if k in d:
+                setattr(data, k, np.array(d[k]))
+        return data
+    
+    @staticmethod
     def from_json(d: DataJsonType) -> "ObjectData":
         assert isinstance(d, dict)
         label = d["label"]
@@ -118,7 +143,6 @@ class ObjectData:
             if k in d:
                 setattr(data, k, np.array(d[k]))
         return data
-
 
 @dataclass
 class CameraData:
@@ -172,6 +196,36 @@ class CameraData:
             assert isinstance(w, int)
             data.resolution = (h, w)
         return data
+
+    # @staticmethod
+    # def from_yaml(data_str: str) -> "CameraData":
+    #     d: DataJsonType = json.loads(data_str)
+    #     config =  yaml.load(data_str, Loader=yaml.FullLoader)
+    #     assert isinstance(d, dict)
+    #     data = CameraData()
+    #     for k in ("TWC", "TWC_init"):
+    #         if k in d:
+    #             item = d[k]
+    #             assert isinstance(item, list)
+    #             quat_list, trans_list = item
+    #             assert isinstance(quat_list, list)
+    #             assert isinstance(trans_list, list)
+    #             quat = tuple(quat_list)
+    #             trans = tuple(trans_list)
+    #             setattr(data, k, Transform(tuple(quat), tuple(trans)))
+    #     for k in ("camera_id",):
+    #         if k in d:
+    #             setattr(data, k, d[k])
+    #     for k in ("K",):
+    #         if k in d:
+    #             setattr(data, k, np.array(d[k]))
+    #     if "resolution" in d:
+    #         assert isinstance(d["resolution"], list)
+    #         h, w = d["resolution"]
+    #         assert isinstance(h, int)
+    #         assert isinstance(w, int)
+    #         data.resolution = (h, w)
+    #     return data
 
 
 @dataclass
